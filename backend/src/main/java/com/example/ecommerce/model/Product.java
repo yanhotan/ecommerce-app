@@ -12,16 +12,18 @@ public class Product {
     private Integer quantity;
     private String imageUrl;
     private Double rating;
+    private String category;
 
     // Constructors
     public Product() {}
 
-    public Product(String name, Double price, Integer quantity, String imageUrl, Double rating) {
+    public Product(String name, Double price, Integer quantity, String imageUrl, Double rating, String category) {
         this.name = name;
         this.price = price;
         this.quantity = quantity;
         this.imageUrl = imageUrl;
         this.rating = rating;
+        this.category = category;
     }
 
     // Getters and Setters
@@ -37,4 +39,6 @@ public class Product {
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 }
