@@ -218,3 +218,12 @@ If issues arise:
 - For production, secure MongoDB credentials using environment variables and deploy (e.g., Netlify for frontend, Heroku for backend).
 
 ---
+
+Build & Run
+In your project root:
+
+bash
+Copy
+Edit
+docker-compose build
+docker-compose up
