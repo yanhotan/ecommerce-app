@@ -1,0 +1,5 @@
+com\example\ecommerce\EcommerceApplication.class
+com\example\ecommerce\repository\ProductRepository.class
+com\example\ecommerce\config\CorsConfig.class
+com\example\ecommerce\controller\ProductController.class
+com\example\ecommerce\model\Product.class
