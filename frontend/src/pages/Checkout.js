@@ -1,70 +1,441 @@
-import React, { useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { CartContext } from '../context/CartContext';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const Checkout = () => {
-    const { cart, setCart } = useContext(CartContext);
-    const navigate = useNavigate();
-
-    const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-
-    const handleCheckout = async () => {
-        try {
-            const order = {
-                items: cart.map(item => ({
-                    productId: item.product.id,
-                    productName: item.product.name,
-                    price: item.product.price,
-                    quantity: item.quantity
-                })),
-                total,
-                status: 'Pending'
-            };
-            await axios.post('http://localhost:8080/api/orders', order);
-            setCart([]);
-            alert('Order placed successfully!');
-            navigate('/');
-        } catch (error) {
-            alert('Failed to place order');
+  const { cartItems, totalPrice, clearCart } = useCart();
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  
+  const [formData, setFormData] = useState({
+    fullName: user?.username || '',
+    email: user?.email || '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.fullName || !formData.email || !formData.address || 
+        !formData.city || !formData.state || !formData.zipCode) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Create order payload
+      const orderData = {
+        userId: user?.id,
+        items: cartItems.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          price: item.price,
+          quantity: item.quantity
+        })),
+        shippingAddress: {
+          fullName: formData.fullName,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode
+        },
+        total: totalPrice
+      };
+      
+      // Send order to backend
+      await axios.post('http://localhost:8080/api/orders', orderData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-    };
-
+      });
+      
+      // Clear cart
+      clearCart();
+      
+      // Show success message and redirect
+      alert('Order placed successfully!');
+      navigate('/');
+      
+    } catch (err) {
+      setError('Failed to place order. Please try again.');
+      console.error('Error placing order:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (cartItems.length === 0) {
     return (
-        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-            <h1>Checkout</h1>
-            {cart.length === 0 ? (
-                <p>Your cart is empty.</p>
-            ) : (
-                <>
-                    <h2>Order Summary</h2>
-                    {cart.map(item => (
-                        <div key={item.product.id} style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            padding: '10px 0',
-                            borderBottom: '1px solid #ddd'
-                        }}>
-                            <span>{item.product.name} (x{item.quantity})</span>
-                            <span>${(item.product.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                    ))}
-                    <div style={{ textAlign: 'right', marginTop: '20px' }}>
-                        <h3>Total: ${total.toFixed(2)}</h3>
-                        <button onClick={handleCheckout} style={{
-                            padding: '10px 20px',
-                            backgroundColor: '#28a745',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '4px'
-                        }}>
-                            Place Order
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
+      <div style={styles.emptyCart}>
+        <p>Your cart is empty. Add some products before checkout.</p>
+        <button 
+          onClick={() => navigate('/')}
+          style={styles.returnButton}
+        >
+          Return to Shop
+        </button>
+      </div>
     );
+  }
+  
+  return (
+    <div style={styles.container}>
+      <h1 style={styles.title}>Checkout</h1>
+      
+      {error && (
+        <div style={styles.error}>
+          {error}
+        </div>
+      )}
+      
+      <div style={styles.checkoutContent}>
+        <div style={styles.orderSummary}>
+          <h2 style={styles.sectionTitle}>Order Summary</h2>
+          
+          <div style={styles.orderItems}>
+            {cartItems.map(item => (
+              <div key={item.id} style={styles.orderItem}>
+                <div style={styles.itemInfo}>
+                  <img 
+                    src={item.imageUrl || 'https://via.placeholder.com/50'} 
+                    alt={item.name}
+                    style={styles.itemImage}
+                  />
+                  <div>
+                    <div style={styles.itemName}>{item.name}</div>
+                    <div style={styles.itemMeta}>
+                      Qty: {item.quantity} × ${item.price.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+                <div style={styles.itemPrice}>
+                  ${(item.price * item.quantity).toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div style={styles.orderTotal}>
+            <div style={styles.totalRow}>
+              <span>Subtotal</span>
+              <span>${totalPrice.toFixed(2)}</span>
+            </div>
+            <div style={styles.totalRow}>
+              <span>Shipping</span>
+              <span>Free</span>
+            </div>
+            <div style={styles.totalRowFinal}>
+              <span>Total</span>
+              <span>${totalPrice.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div style={styles.checkoutForm}>
+          <h2 style={styles.sectionTitle}>Shipping Information</h2>
+          
+          <form onSubmit={handleSubmit}>
+            <div style={styles.formGroup}>
+              <label htmlFor="fullName" style={styles.label}>Full Name *</label>
+              <input
+                type="text"
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                style={styles.input}
+                required
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label htmlFor="email" style={styles.label}>Email *</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                style={styles.input}
+                required
+              />
+            </div>
+            
+            <div style={styles.formGroup}>
+              <label htmlFor="address" style={styles.label}>Address *</label>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                style={styles.input}
+                required
+              />
+            </div>
+            
+            <div style={styles.formRow}>
+              <div style={styles.formGroup}>
+                <label htmlFor="city" style={styles.label}>City *</label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  style={styles.input}
+                  required
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label htmlFor="state" style={styles.label}>State *</label>
+                <input
+                  type="text"
+                  id="state"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  style={styles.input}
+                  required
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label htmlFor="zipCode" style={styles.label}>ZIP Code *</label>
+                <input
+                  type="text"
+                  id="zipCode"
+                  name="zipCode"
+                  value={formData.zipCode}
+                  onChange={handleChange}
+                  style={styles.input}
+                  required
+                />
+              </div>
+            </div>
+            
+            <h2 style={{...styles.sectionTitle, marginTop: '30px'}}>Payment Information</h2>
+            
+            <div style={styles.formGroup}>
+              <label htmlFor="cardNumber" style={styles.label}>Card Number *</label>
+              <input
+                type="text"
+                id="cardNumber"
+                name="cardNumber"
+                value={formData.cardNumber}
+                onChange={handleChange}
+                style={styles.input}
+                placeholder="1234 5678 9012 3456"
+                required
+              />
+            </div>
+            
+            <div style={styles.formRow}>
+              <div style={styles.formGroup}>
+                <label htmlFor="cardExpiry" style={styles.label}>Expiry Date *</label>
+                <input
+                  type="text"
+                  id="cardExpiry"
+                  name="cardExpiry"
+                  value={formData.cardExpiry}
+                  onChange={handleChange}
+                  style={styles.input}
+                  placeholder="MM/YY"
+                  required
+                />
+              </div>
+              
+              <div style={styles.formGroup}>
+                <label htmlFor="cardCvv" style={styles.label}>CVV *</label>
+                <input
+                  type="text"
+                  id="cardCvv"
+                  name="cardCvv"
+                  value={formData.cardCvv}
+                  onChange={handleChange}
+                  style={styles.input}
+                  placeholder="123"
+                  required
+                />
+              </div>
+            </div>
+            
+            <button 
+              type="submit" 
+              style={styles.placeOrderButton}
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Place Order'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const styles = {
+  container: {
+    padding: '20px 0',
+  },
+  title: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    marginBottom: '30px',
+  },
+  error: {
+    backgroundColor: '#ffebee',
+    color: '#c62828',
+    padding: '10px 15px',
+    borderRadius: '4px',
+    marginBottom: '20px',
+  },
+  checkoutContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '30px',
+    '@media (min-width: 768px)': {
+      flexDirection: 'row',
+    },
+  },
+  orderSummary: {
+    flex: '1',
+    backgroundColor: '#f9f9f9',
+    padding: '20px',
+    borderRadius: '8px',
+    alignSelf: 'flex-start',
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    marginBottom: '20px',
+  },
+  orderItems: {
+    marginBottom: '20px',
+  },
+  orderItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '10px 0',
+    borderBottom: '1px solid #eee',
+  },
+  itemInfo: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  itemImage: {
+    width: '50px',
+    height: '50px',
+    objectFit: 'cover',
+    borderRadius: '4px',
+    marginRight: '10px',
+  },
+  itemName: {
+    fontWeight: 'bold',
+  },
+  itemMeta: {
+    fontSize: '14px',
+    color: '#666',
+  },
+  itemPrice: {
+    fontWeight: 'bold',
+  },
+  orderTotal: {
+    marginTop: '20px',
+  },
+  totalRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '10px',
+  },
+  totalRowFinal: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontWeight: 'bold',
+    fontSize: '18px',
+    marginTop: '10px',
+    paddingTop: '10px',
+    borderTop: '1px solid #ddd',
+  },
+  checkoutForm: {
+    flex: '2',
+  },
+  formGroup: {
+    marginBottom: '20px',
+  },
+  formRow: {
+    display: 'flex',
+    gap: '15px',
+    flexWrap: 'wrap',
+    '@media (min-width: 768px)': {
+      flexWrap: 'nowrap',
+    },
+  },
+  label: {
+    display: 'block',
+    marginBottom: '5px',
+    fontSize: '14px',
+    fontWeight: 'bold',
+  },
+  input: {
+    width: '100%',
+    padding: '10px',
+    fontSize: '16px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+  },
+  placeOrderButton: {
+    backgroundColor: '#ee4d2d',
+    color: 'white',
+    border: 'none',
+    padding: '12px 20px',
+    borderRadius: '4px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    width: '100%',
+    marginTop: '20px',
+  },
+  emptyCart: {
+    textAlign: 'center',
+    padding: '40px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '8px',
+  },
+  returnButton: {
+    backgroundColor: '#ee4d2d',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '4px',
+    fontSize: '16px',
+    cursor: 'pointer',
+    marginTop: '20px',
+  },
 };
 
 export default Checkout;

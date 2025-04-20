@@ -1,21 +1,43 @@
-# Use Maven with JDK 17 as the base image
-FROM maven:3.9.6-eclipse-temurin-21 AS backend-build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy pom.xml and download dependencies
-COPY pom.xml .
-RUN mvn dependency:go-offline
+# Copy entire project (pom.xml + src + any other files needed)
+COPY . .
 
-# Copy the rest of the backend code
-COPY src ./src
+# Now go offline to prefetch dependencies
+RUN mvn dependency:go-offline -B
 
-# Build the application
-RUN mvn package -DskipTests
+# Package the app
+RUN mvn clean package -DskipTests
 
-# Expose port 8080
-EXPOSE 8080
+# Optional: use a smaller runtime image
+FROM eclipse-temurin:21-jdk
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Run the Spring Boot app
-CMD ["java", "-jar", "target/ecommerce-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "app.jar"]
+
+
+# desktop docker version
+# # Use Maven with JDK 17 as the base image
+# FROM maven:3.9.6-eclipse-temurin-21 AS backend-build
+
+# # Set working directory
+# WORKDIR /app
+
+# # Copy pom.xml and download dependencies
+# COPY pom.xml .
+# RUN mvn dependency:go-offline
+
+# # Copy the rest of the backend code
+# COPY src ./src
+
+# # Build the application
+# RUN mvn package -DskipTests
+
+# # Expose port 8080
+# EXPOSE 8080
+
+# # Run the Spring Boot app
+# CMD ["java", "-jar", "target/ecommerce-0.0.1-SNAPSHOT.jar"]
