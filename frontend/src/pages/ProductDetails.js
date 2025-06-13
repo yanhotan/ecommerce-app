@@ -281,14 +281,14 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-  },
-  quantityInput: {
+  },  quantityInput: {
     width: '60px',
     height: '36px',
     border: '1px solid #ddd',
     textAlign: 'center',
     fontSize: '16px',
     margin: '0 5px',
+    backgroundColor: '#fffcf4',
   },
   actions: {
     display: 'flex',

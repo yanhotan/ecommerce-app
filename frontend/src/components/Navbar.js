@@ -150,13 +150,13 @@ const styles = {
     '@media (max-width: 768px)': {
       display: 'none',
     },
-  },
-  searchInput: {
+  },  searchInput: {
     flex: '1',
     padding: '8px 12px',
     border: 'none',
     borderRadius: '4px 0 0 4px',
     fontSize: '14px',
+    backgroundColor: '#fffcf4',
   },
   searchButton: {
     backgroundColor: '#d73211',

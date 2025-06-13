@@ -413,13 +413,13 @@ const styles = {
     marginBottom: '5px',
     fontSize: '14px',
     fontWeight: 'bold',
-  },
-  input: {
+  },  input: {
     width: '100%',
     padding: '10px',
     fontSize: '16px',
     border: '1px solid #ddd',
     borderRadius: '4px',
+    backgroundColor: '#fffcf4',
   },
   placeOrderButton: {
     backgroundColor: '#ee4d2d',
