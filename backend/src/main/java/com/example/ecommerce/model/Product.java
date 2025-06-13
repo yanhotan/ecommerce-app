@@ -11,6 +11,8 @@ public class Product {
     private Double price;
     private Integer quantity;
     private String imageUrl;
+    private String imageData; // Base64 encoded image data
+    private String imageFileId; // GridFS file ID for larger images
     private Double rating;
     private String category;
 
@@ -34,9 +36,15 @@ public class Product {
     public Double getPrice() { return price; }
     public void setPrice(Double price) { this.price = price; }
     public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
-    public String getImageUrl() { return imageUrl; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }    public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    
+    public String getImageData() { return imageData; }
+    public void setImageData(String imageData) { this.imageData = imageData; }
+    
+    public String getImageFileId() { return imageFileId; }
+    public void setImageFileId(String imageFileId) { this.imageFileId = imageFileId; }
+    
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
     public String getCategory() { return category; }
