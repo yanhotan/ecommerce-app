@@ -65,13 +65,12 @@ const ProductCard = ({ product }) => {
   );
 };
 
-const styles = {
-  card: {
+const styles = {  card: {
     border: '1px solid #eee',
     borderRadius: '8px',
     overflow: 'hidden',
     transition: 'transform 0.2s, box-shadow 0.2s',
-    backgroundColor: 'white',
+    backgroundColor: '#fffcf4',
     ':hover': {
       transform: 'translateY(-5px)',
       boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)',

@@ -125,12 +125,11 @@ const styles = {
   filterLabel: {
     marginRight: '10px',
     fontWeight: 'bold',
-  },
-  filterSelect: {
+  },  filterSelect: {
     padding: '8px 12px',
     borderRadius: '4px',
     border: '1px solid #ddd',
-    backgroundColor: 'white',
+    backgroundColor: '#fffcf4',
   },
   productsGrid: {
     display: 'grid',

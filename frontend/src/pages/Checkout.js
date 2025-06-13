@@ -3,26 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import PaymentSelection from '../components/PaymentSelection';
 
 const Checkout = () => {
   const { cartItems, totalPrice, clearCart } = useCart();
   const { user, token } = useAuth();
   const navigate = useNavigate();
-  
-  const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
     fullName: user?.username || '',
     email: user?.email || '',
     address: '',
     city: '',
     state: '',
     zipCode: '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvv: '',
   });
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentStep, setCurrentStep] = useState('shipping'); // 'shipping', 'payment', 'complete'
+  const [createdOrder, setCreatedOrder] = useState(null);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,8 +30,7 @@ const Checkout = () => {
       [name]: value
     });
   };
-  
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Basic validation
@@ -60,32 +58,94 @@ const Checkout = () => {
           address: formData.address,
           city: formData.city,
           state: formData.state,
-          zipCode: formData.zipCode
+          zipCode: formData.zipCode,
+          country: 'Malaysia'
         },
         total: totalPrice
       };
       
       // Send order to backend
-      await axios.post('http://localhost:8080/api/orders', orderData, {
+      const response = await axios.post('http://localhost:8080/api/orders', orderData, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      // Clear cart
-      clearCart();
-      
-      // Show success message and redirect
-      alert('Order placed successfully!');
-      navigate('/');
+      setCreatedOrder(response.data);
+      setCurrentStep('payment');
       
     } catch (err) {
-      setError('Failed to place order. Please try again.');
-      console.error('Error placing order:', err);
+      setError('Failed to create order. Please try again.');
+      console.error('Error creating order:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePaymentSuccess = async (paymentData) => {
+    try {
+      // Update order with payment information
+      await axios.put(`http://localhost:8080/api/orders/${createdOrder.id}`, {
+        ...createdOrder,
+        paymentId: paymentData.id,
+        paymentMethod: paymentData.paymentMethod,
+        status: 'Paid'
+      });
+
+      // Clear cart
+      clearCart();
+      
+      // Show success and redirect
+      setCurrentStep('complete');
+      setTimeout(() => {
+        navigate('/');
+      }, 3000);
+      
+    } catch (err) {
+      setError('Payment successful but failed to update order. Please contact support.');
+      console.error('Error updating order:', err);
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    setCurrentStep('shipping');
+    setCreatedOrder(null);
+  };
+  
+  if (currentStep === 'complete') {
+    return (
+      <div style={styles.container}>
+        <div style={styles.successContainer}>
+          <h1 style={styles.successTitle}>🎉 Order Placed Successfully!</h1>
+          <p style={styles.successMessage}>
+            Thank you for your purchase. Your order has been confirmed and will be processed shortly.
+          </p>
+          <p style={styles.redirectMessage}>
+            Redirecting you to the home page...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'payment' && createdOrder) {
+    return (
+      <div style={styles.container}>
+        <h1 style={styles.title}>Payment</h1>
+        {error && (
+          <div style={styles.error}>
+            {error}
+          </div>
+        )}
+        <PaymentSelection
+          orderId={createdOrder.id}
+          totalAmount={totalPrice}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentCancel={handlePaymentCancel}
+        />
+      </div>
+    );
+  }
   
   if (cartItems.length === 0) {
     return (
@@ -235,61 +295,14 @@ const Checkout = () => {
                   style={styles.input}
                   required
                 />
-              </div>
-            </div>
-            
-            <h2 style={{...styles.sectionTitle, marginTop: '30px'}}>Payment Information</h2>
-            
-            <div style={styles.formGroup}>
-              <label htmlFor="cardNumber" style={styles.label}>Card Number *</label>
-              <input
-                type="text"
-                id="cardNumber"
-                name="cardNumber"
-                value={formData.cardNumber}
-                onChange={handleChange}
-                style={styles.input}
-                placeholder="1234 5678 9012 3456"
-                required
-              />
-            </div>
-            
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label htmlFor="cardExpiry" style={styles.label}>Expiry Date *</label>
-                <input
-                  type="text"
-                  id="cardExpiry"
-                  name="cardExpiry"
-                  value={formData.cardExpiry}
-                  onChange={handleChange}
-                  style={styles.input}
-                  placeholder="MM/YY"
-                  required
-                />
-              </div>
-              
-              <div style={styles.formGroup}>
-                <label htmlFor="cardCvv" style={styles.label}>CVV *</label>
-                <input
-                  type="text"
-                  id="cardCvv"
-                  name="cardCvv"
-                  value={formData.cardCvv}
-                  onChange={handleChange}
-                  style={styles.input}
-                  placeholder="123"
-                  required
-                />
-              </div>
-            </div>
+              </div>            </div>
             
             <button 
               type="submit" 
               style={styles.placeOrderButton}
               disabled={loading}
             >
-              {loading ? 'Processing...' : 'Place Order'}
+              {loading ? 'Creating Order...' : 'Continue to Payment'}
             </button>
           </form>
         </div>
@@ -435,6 +448,31 @@ const styles = {
     fontSize: '16px',
     cursor: 'pointer',
     marginTop: '20px',
+  },
+  successContainer: {
+    textAlign: 'center',
+    padding: '60px 20px',
+    backgroundColor: '#f0f8ff',
+    borderRadius: '8px',
+    maxWidth: '500px',
+    margin: '0 auto',
+  },
+  successTitle: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: '20px',
+  },
+  successMessage: {
+    fontSize: '16px',
+    color: '#666',
+    marginBottom: '15px',
+    lineHeight: '1.6',
+  },
+  redirectMessage: {
+    fontSize: '14px',
+    color: '#999',
+    fontStyle: 'italic',
   },
 };
 
