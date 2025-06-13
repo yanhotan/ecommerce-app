@@ -384,11 +384,10 @@ const styles = {
   timelineLabel: {
     marginLeft: '5px',
     fontSize: '14px',
-  },
-  orderDetails: {
+  },  orderDetails: {
     marginTop: '20px',
     padding: '15px',
-    backgroundColor: 'white',
+    backgroundColor: '#fffcf4',
     borderRadius: '4px',
     border: '1px solid #eee',
   },

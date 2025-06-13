@@ -95,12 +95,11 @@ const styles = {
     alignItems: 'center',
     minHeight: 'calc(100vh - 100px)',
     backgroundColor: '#f5f5f5',
-  },
-  loginBox: {
+  },  loginBox: {
     width: '100%',
     maxWidth: '500px',
     padding: '30px',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fffcf4',
     borderRadius: '8px',
     boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
   },

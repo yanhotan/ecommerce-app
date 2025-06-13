@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -18,7 +19,6 @@ const Register = () => {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -46,20 +46,39 @@ const Register = () => {
       return;
     }
     
-    // Mock registration success (in a real app, you would call the API here)
-    setSuccess(true);
-    setError('');
-    
-    // Reset form
-    setUsername('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    
-    // Redirect to login after 2 seconds
-    setTimeout(() => {
-      navigate('/login');
-    }, 2000);
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await axios.post('http://localhost:8080/api/auth/register', {
+        username,
+        email,
+        password
+      });
+      
+      if (response.data.success) {
+        setSuccess(true);
+        
+        // Reset form
+        setUsername('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError(response.data.message || 'Registration failed');
+      }
+      
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -124,7 +143,13 @@ const Register = () => {
               />
             </div>
             
-            <button type="submit" style={styles.button}>Register</button>
+            <button 
+              type="submit" 
+              style={styles.button}
+              disabled={loading}
+            >
+              {loading ? 'Creating Account...' : 'Register'}
+            </button>
             
             <p style={styles.loginText}>
               Already have an account? <Link to="/login" style={styles.link}>Login here</Link>
@@ -143,12 +168,11 @@ const styles = {
     alignItems: 'center',
     minHeight: 'calc(100vh - 100px)',
     backgroundColor: '#f5f5f5',
-  },
-  registerBox: {
+  },  registerBox: {
     width: '100%',
     maxWidth: '500px',
     padding: '30px',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fffcf4',
     borderRadius: '8px',
     boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
   },
