@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Payment Gateway</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .payment-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .payment-logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .payment-title {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .transaction-info {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .btn {
+            padding: 12px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .note {
+            font-size: 14px;
+            color: #666;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="payment-logo">💳</div>
+        <h1 class="payment-title">[[${paymentMethod}]] Payment Gateway</h1>
+        
+        <div class="transaction-info">
+            <h3>Transaction Details</h3>
+            <p><strong>Transaction ID:</strong> [[${transactionId}]]</p>
+            <p><strong>Payment Method:</strong> [[${paymentMethod}]]</p>
+        </div>
+        
+        <h3>Simulate Payment Result:</h3>
+        
+        <button class="btn btn-success" onclick="simulatePayment('SUCCESS')">
+            ✅ Payment Successful
+        </button>
+        
+        <button class="btn btn-danger" onclick="simulatePayment('FAILED')">
+            ❌ Payment Failed
+        </button>
+        
+        <div class="note">
+            <p><strong>Note:</strong> This is a mock payment gateway for testing purposes.</p>
+            <p>In a real implementation, this would be the actual payment provider's interface.</p>
+        </div>
+    </div>
+
+    <script>
+        function simulatePayment(status) {
+            const transactionId = '[[${transactionId}]]';
+            
+            // Call the backend to update payment status
+            fetch('/api/payments/callback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    transactionId: transactionId,
+                    status: status,
+                    failureReason: status === 'FAILED' ? 'Simulated payment failure' : null
+                })
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (status === 'SUCCESS') {
+                    alert('Payment successful! You can close this window and return to the store.');
+                } else {
+                    alert('Payment failed! Please try again or use a different payment method.');
+                }
+                // Close the window after a short delay
+                setTimeout(() => {
+                    window.close();
+                }, 2000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error processing payment callback');
+            });
+        }
+    </script>
+</body>
+</html>
