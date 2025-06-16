@@ -1,22 +1,22 @@
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+# Development version with live reload support
+FROM maven:3.9.6-eclipse-temurin-21
 
 WORKDIR /app
 
-# Copy entire project (pom.xml + src + any other files needed)
-COPY . .
+# Copy pom.xml first for better caching
+COPY pom.xml .
 
-# Now go offline to prefetch dependencies
+# Download dependencies (this layer will be cached unless pom.xml changes)
 RUN mvn dependency:go-offline -B
 
-# Package the app
-RUN mvn clean package -DskipTests
+# Copy source code (this will be mounted as volume in development)
+COPY src ./src
 
-# Optional: use a smaller runtime image
-FROM eclipse-temurin:21-jdk
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+# Expose port 8080
+EXPOSE 8080
 
-CMD ["java", "-jar", "app.jar"]
+# Use spring-boot:run for development with auto-reload
+CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=*:5005"]
 
 
 # desktop docker version

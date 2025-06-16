@@ -43,19 +43,32 @@ public class PaymentService {
           return paymentRepository.save(payment);
     }    public Payment createDuitNowPayment(String orderId, Double amount) {
         Payment payment = new Payment(orderId, "DUITNOW", amount);
+          // Generate transaction ID
+        String transactionId = "DN_" + UUID.randomUUID().toString().substring(0, 8);
+        System.out.println("Creating DuitNow payment for transaction: " + transactionId + ", amount: RM " + amount);
         
+        // Use the real DuitNow QR image from frontend public folder
+        // This path will be accessible from the React frontend at runtime
+        String qrCodeImageUrl = "http://localhost:3000/duitnow_qr.jpg"; // Full URL to frontend static image
+        
+        payment.setTransactionId(transactionId);
+        payment.setQrCode(qrCodeImageUrl); // Use the real QR image
+        
+        System.out.println("DuitNow payment created with real QR image: " + qrCodeImageUrl);
+        
+        return paymentRepository.save(payment);
+        
+        /* COMMENTED OUT: Dynamic QR generation (requires official DuitNow API)
         try {
             // Generate real DuitNow QR code
-            String transactionId = "DN_" + UUID.randomUUID().toString().substring(0, 8);
-            System.out.println("Generating QR for transaction: " + transactionId + ", amount: " + amount);
-            
             String qrCodeData = generateDuitNowQR(transactionId, amount);
             System.out.println("QR Data: " + qrCodeData);
             
             // Generate QR code image bytes
             byte[] qrImageBytes = generateQRCodeImageBytes(qrCodeData);
             System.out.println("QR Image generated, size: " + qrImageBytes.length + " bytes");
-              // Store QR image in GridFS
+              
+            // Store QR image in GridFS
             String qrImageFileId = imageService.uploadImageFromBytes(
                 qrImageBytes, 
                 "qr_" + transactionId + ".png", 
@@ -82,6 +95,7 @@ public class PaymentService {
             
             return paymentRepository.save(payment);
         }
+        */
     }
 
     public Payment processPaymentCallback(String transactionId, String status, String failureReason) {
@@ -105,7 +119,8 @@ public class PaymentService {
 
     public Payment getPaymentById(String paymentId) {        return paymentRepository.findById(paymentId)
             .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
-    }    private String generateDuitNowQR(String transactionId, Double amount) {
+    }    /* COMMENTED OUT: QR generation methods (not needed when using static QR image)
+    private String generateDuitNowQR(String transactionId, Double amount) {
         // Generate real DuitNow QR code using your actual DuitNow number
         String mobileNumber = "171036564446"; // Your actual DuitNow number
         String merchantName = "TANYANHO"; // Your actual merchant name from decoded QR
@@ -180,6 +195,7 @@ public class PaymentService {
             return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
         }
     }
+    */
     
     private byte[] generateQRCodeImageBytes(String qrData) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
