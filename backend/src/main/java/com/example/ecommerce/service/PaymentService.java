@@ -105,68 +105,54 @@ public class PaymentService {
 
     public Payment getPaymentById(String paymentId) {        return paymentRepository.findById(paymentId)
             .orElseThrow(() -> new RuntimeException("Payment not found: " + paymentId));
-    }
-
-    private String generateDuitNowQR(String transactionId, Double amount) {
-        // Generate real DuitNow QR code
-        String duitNowNumber = "171036564446"; // Your DuitNow number
-        String merchantName = "ShopEase Store";
+    }    private String generateDuitNowQR(String transactionId, Double amount) {
+        // Generate real DuitNow QR code using your actual DuitNow number
+        String mobileNumber = "171036564446"; // Your actual DuitNow number
+        String merchantName = "TANYANHO"; // Your actual merchant name from decoded QR
         
-        // DuitNow QR format follows EMV QR Code standards
-        String qrData = generateEMVQRCode(duitNowNumber, merchantName, amount, transactionId);
+        // Use your real QR code as template and modify dynamic parts
+        String qrData = generateDuitNowStaticQR(mobileNumber, merchantName);
         
-        // For now, return the QR data string - you can use a QR code library to generate actual image
         return qrData;
     }
-    
-    private String generateEMVQRCode(String duitNowNumber, String merchantName, Double amount, String transactionId) {
-        StringBuilder qrCode = new StringBuilder();
-        
-        // Payload Format Indicator
-        qrCode.append("00").append("02").append("01");
-        
-        // Point of Initiation Method (Dynamic QR)
-        qrCode.append("01").append("02").append("12");
-        
-        // Merchant Account Information for DuitNow
-        String merchantAccountInfo = "0010A000000615" + // DuitNow identifier
-                                   "0102" + String.format("%02d", duitNowNumber.length()) + duitNowNumber +
-                                   "0303" + "MY"; // Malaysia country code
-        qrCode.append("26").append(String.format("%02d", merchantAccountInfo.length())).append(merchantAccountInfo);
-        
-        // Merchant Category Code (General retail)
-        qrCode.append("52").append("04").append("5411");
-        
-        // Transaction Currency (MYR = 458)
-        qrCode.append("53").append("03").append("458");
-        
-        // Transaction Amount
-        String amountStr = String.format("%.2f", amount);
-        qrCode.append("54").append(String.format("%02d", amountStr.length())).append(amountStr);
-        
-        // Country Code
-        qrCode.append("58").append("02").append("MY");
-        
-        // Merchant Name
-        qrCode.append("59").append(String.format("%02d", merchantName.length())).append(merchantName);
-        
-        // Merchant City
-        String city = "Kuala Lumpur";
-        qrCode.append("60").append(String.format("%02d", city.length())).append(city);
-        
-        // Additional Data Field Template
-        String additionalData = "05" + String.format("%02d", transactionId.length()) + transactionId;
-        qrCode.append("62").append(String.format("%02d", additionalData.length())).append(additionalData);
-        
-        // CRC16 placeholder (will be calculated)
-        qrCode.append("6304");
-        
-        // Calculate CRC16
-        String crc = calculateCRC16(qrCode.toString());
-        qrCode.append(crc);
-        
-        return qrCode.toString();
+      private String generateDuitNowStaticQR(String mobileNumber, String merchantName) {
+        String payloadFormatIndicator = "000201";
+        String pointOfInitiationMethod = "010211"; // 11 = static QR
+
+        // Merchant Account Info (ID 26)
+        String globallyUniqueId = "A000000615"; // DuitNow ID
+        String proxyType = "01"; // 01 = Mobile Number
+        String proxyValue = mobileNumber.startsWith("6") ? mobileNumber : "6" + mobileNumber; // Ensure starts with '6'
+        String proxyField = proxyType + String.format("%02d", proxyValue.length()) + proxyValue;
+        String merchantAccountInfoValue = globallyUniqueId + proxyField;
+        String merchantAccountInfo = "26" + String.format("%02d", merchantAccountInfoValue.length()) + merchantAccountInfoValue;
+
+        // Other required fields
+        String merchantCategoryCode = "52040000"; // 0000 = default
+        String transactionCurrency = "5303458";   // MYR
+        String countryCode = "5802MY";
+        String merchantNameStr = "59" + String.format("%02d", merchantName.length()) + merchantName;
+        String merchantCity = "6009KualaLumpur"; // Can be replaced with real city if needed
+
+        // No amount (static QR), no transaction ID
+        String additionalDataField = ""; // Optional, skip for static QR
+
+        // Assemble without CRC
+        String rawPayload = payloadFormatIndicator +
+                            pointOfInitiationMethod +
+                            merchantAccountInfo +
+                            merchantCategoryCode +
+                            transactionCurrency +
+                            countryCode +
+                            merchantNameStr +
+                            merchantCity +
+                            additionalDataField +
+                            "6304"; // CRC Placeholder
+
+        String crc = calculateCRC16(rawPayload); // Make sure this function returns **uppercase HEX**
+        return rawPayload + crc;
     }
+
     
     private String calculateCRC16(String data) {
         // Simple CRC16-CCITT calculation
